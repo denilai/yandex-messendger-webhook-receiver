@@ -43,6 +43,35 @@ curl -i http://localhost:8080/healthz
 - `YANDEX_API_BASE` (по умолчанию `https://botapi.messenger.yandex.net`)
 - `YANDEX_HTTP_TIMEOUT_SECONDS` (по умолчанию `5.0`)
 - `FAIL_ON_YANDEX_4XX` (по умолчанию `false`)
+- `MESSAGE_TEMPLATE_INLINE` — Jinja2 шаблон сообщения (строкой). Если задан, используется вместо встроенного форматтера.
+- `MESSAGE_TEMPLATE_NAME` — имя файла шаблона из `app/templates/` (например `default.j2`). Используется, если не задан `MESSAGE_TEMPLATE_INLINE`.
+- `MESSAGE_TEMPLATE_MAX_ALERTS` — сколько алертов передавать в шаблон как `alerts` (по умолчанию `5`).
+
+## Шаблонизация сообщений (брендинг)
+
+Если задан `MESSAGE_TEMPLATE_INLINE` или `MESSAGE_TEMPLATE_NAME`, сервис будет рендерить `text` через **Jinja2**.
+
+В шаблон передаются:
+
+- `payload` — полный объект Alertmanager webhook v4
+- `alerts` — `payload.alerts[:max_alerts]` (срез)
+- `target` — объект с `type="user|chat"` и полями `login/chat_id`
+- `max_alerts` — значение `MESSAGE_TEMPLATE_MAX_ALERTS`
+
+Доступные хелперы/фильтры:
+
+- `kv(obj)` / `obj | kv` — форматирование dict в `k=v` (с сортировкой)
+- `first(a, b, ...)` / `value | first(...)` — взять первое непустое
+- `iso(dt)` / `dt | iso` — `datetime` → `isoformat()`
+- `tojson(v)` / `v | tojson` — JSON без ASCII-эскейпов
+- `truncate(text, 6000)` / `text | truncate(6000)` — обрезка до лимита Яндекса (по умолчанию 6000)
+- `template("name.j2", **ctx)` — рендер другого шаблона (по смыслу похоже на Alertmanager `{{ template "..." . }}`)
+
+Пример:
+
+```bash
+export MESSAGE_TEMPLATE_INLINE='[{{ payload.status|upper }}] {{ payload.commonLabels.alertname | default("ALERT") }}'
+```
 
 ## Примеры curl
 

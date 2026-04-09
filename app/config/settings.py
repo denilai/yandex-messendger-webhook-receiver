@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     )
     fail_on_yandex_4xx: bool = Field(default=False, alias="FAIL_ON_YANDEX_4XX")
 
+    # Message templating (optional). If set, takes precedence over built-in formatting.
+    # Choose ONE of:
+    # - MESSAGE_TEMPLATE_INLINE: literal Jinja2 template source
+    # - MESSAGE_TEMPLATE_NAME: template file under app/templates/, e.g. "default.j2"
+    message_template_inline: str | None = Field(default=None, alias="MESSAGE_TEMPLATE_INLINE")
+    message_template_name: str | None = Field(default=None, alias="MESSAGE_TEMPLATE_NAME")
+    message_template_max_alerts: int = Field(default=5, alias="MESSAGE_TEMPLATE_MAX_ALERTS")
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

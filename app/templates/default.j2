@@ -1,0 +1,21 @@
+[{% if payload.status %}{{ payload.status|upper }}{% else %}ALERT{% endif %}] {{ payload.commonLabels.alertname | default("ALERT") }}
+
+{% set summary = payload.commonAnnotations.summary | default("") %}
+{% if summary %}{{ summary }}{% endif %}
+
+{% set description = payload.commonAnnotations.description | default("") %}
+{% if description %}{{ description }}{% endif %}
+
+Group: {{ payload.groupLabels | kv }}
+Common: {{ payload.commonLabels | kv }}
+
+Alerts:
+{% for a in alerts %}
+- {{ a.labels.get("instance", "?") }} {{ a.labels.get("job", "?") }} {{ a.labels.get("severity", "?") }}
+  startsAt={{ a.startsAt|iso }} endsAt={{ a.endsAt|iso }}
+  {% set a_summary = a.annotations.get("summary") %}
+  {% if a_summary %}{{ a_summary }}{% endif %}
+{% endfor %}
+
+Alertmanager: {{ payload.externalURL or "-" }}
+GroupKey: {{ payload.groupKey }}
