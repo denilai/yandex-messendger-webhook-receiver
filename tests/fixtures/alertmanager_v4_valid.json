@@ -1,0 +1,56 @@
+{
+  "version": "4",
+  "status": "firing",
+  "groupKey": "{}:{alertname=\"HighErrorRate\"}",
+  "receiver": "yandex-webhook",
+  "truncatedAlerts": 0,
+  "groupLabels": {
+    "alertname": "HighErrorRate"
+  },
+  "commonLabels": {
+    "alertname": "HighErrorRate",
+    "severity": "critical",
+    "job": "api"
+  },
+  "commonAnnotations": {
+    "summary": "High error rate detected",
+    "description": "5xx responses exceed threshold"
+  },
+  "externalURL": "http://alertmanager.example",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighErrorRate",
+        "instance": "api-1",
+        "job": "api",
+        "severity": "critical"
+      },
+      "annotations": {
+        "summary": "api-1 is failing",
+        "description": "Error rate above 10%"
+      },
+      "startsAt": "2026-04-09T12:00:00Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "http://prometheus.example/graph?g0.expr=...",
+      "fingerprint": "abc123"
+    },
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HighErrorRate",
+        "instance": "api-2",
+        "job": "api",
+        "severity": "critical"
+      },
+      "annotations": {
+        "summary": "api-2 is failing",
+        "description": "Error rate above 10%"
+      },
+      "startsAt": "2026-04-09T12:01:00Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "http://prometheus.example/graph?g0.expr=...",
+      "fingerprint": "def456"
+    }
+  ]
+}
