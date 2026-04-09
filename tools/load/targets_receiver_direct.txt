@@ -1,0 +1,5 @@
+POST http://receiver:8080/v1/alerts/chats/123
+Authorization: Basic dXNlcjpwYXNz
+Content-Type: application/json
+@/payload.json
+

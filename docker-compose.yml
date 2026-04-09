@@ -1,0 +1,44 @@
+services:
+  receiver:
+    build:
+      context: .
+    environment:
+      BASIC_AUTH_USERNAME: user
+      BASIC_AUTH_PASSWORD: pass
+      YANDEX_OAUTH_TOKEN: dummy
+      YANDEX_API_BASE: http://mock-yandex:8080
+    ports:
+      - "8081:8080"
+    depends_on:
+      - mock-yandex
+
+  mock-yandex:
+    build:
+      context: tools/mock_yandex
+    environment:
+      MOCK_YANDEX_MODE: always_ok
+    ports:
+      - "18080:8080"
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.0
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --log.level=info
+    volumes:
+      - ./tools/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
+    depends_on:
+      - receiver
+
+  alert-generator:
+    build:
+      context: tools/alert_generator
+    environment:
+      ALERTMANAGER_URL: http://alertmanager:9093
+    depends_on:
+      - alertmanager
+    profiles:
+      - tools
+

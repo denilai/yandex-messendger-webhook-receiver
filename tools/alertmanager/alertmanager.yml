@@ -1,0 +1,42 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: "yandex-default"
+  group_by: ["alertname"]
+  group_wait: 1s
+  group_interval: 10s
+  repeat_interval: 1h
+  routes:
+    - receiver: "yandex-chat"
+      matchers:
+        - am_target="chat"
+    - receiver: "yandex-user"
+      matchers:
+        - am_target="user"
+
+receivers:
+  - name: "yandex-default"
+    webhook_configs:
+      - url: "http://receiver:8080/v1/alerts/chats/123"
+        http_config:
+          basic_auth:
+            username: "user"
+            password: "pass"
+
+  - name: "yandex-chat"
+    webhook_configs:
+      - url: "http://receiver:8080/v1/alerts/chats/123"
+        http_config:
+          basic_auth:
+            username: "user"
+            password: "pass"
+
+  - name: "yandex-user"
+    webhook_configs:
+      - url: "http://receiver:8080/v1/alerts/users/test"
+        http_config:
+          basic_auth:
+            username: "user"
+            password: "pass"
+

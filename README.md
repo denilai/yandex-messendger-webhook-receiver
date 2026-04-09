@@ -92,3 +92,75 @@ receivers:
 - **2xx** на входящем webhook означает успех для Alertmanager.
 - **5xx** (например `503`) означает временную ошибку — Alertmanager будет ретраить с backoff.
 
+## Локальный стенд (docker-compose): интеграционные тесты
+
+Поднимает 3 сервиса:
+
+- `receiver` (наш сервис)
+- `alertmanager` (шлёт webhooks в `receiver`)
+- `mock-yandex` (принимает `sendText` вместо настоящего Yandex API)
+
+Запуск:
+
+```bash
+docker compose up -d --build
+docker compose ps
+```
+
+Проверить, что всё живо:
+
+```bash
+curl -i http://localhost:8081/healthz
+curl -i http://localhost:18080/_last
+```
+
+### Сгенерировать алерты (точечно / массово)
+
+Сервис `alert-generator` собран как контейнер. Его можно запускать on-demand:
+
+```bash
+# 1 алерт в чат (matchers am_target="chat" → receiver /v1/alerts/chats/123)
+docker compose --profile tools run --rm alert-generator --mode single --count 1 --target chat
+
+# много алертов, чтобы проверить группировку
+docker compose --profile tools run --rm alert-generator --mode burst --count 200 --target chat --group-key HighErrorRate
+
+# много уникальных алертов (без группировки по alertname)
+docker compose --profile tools run --rm alert-generator --mode spray --count 200 --target chat --group-key HighErrorRate
+
+# резолв (проверить resolved нотификации)
+docker compose --profile tools run --rm alert-generator --mode single --count 1 --target chat --status resolved
+```
+
+Проверка, что receiver реально вызвал sendText:
+
+```bash
+curl -s http://localhost:18080/_last | python -m json.tool
+```
+
+### Негативные сценарии (ретраи)
+
+Можно заставить `mock-yandex` возвращать 500/429, чтобы receiver отвечал `503` и Alertmanager ретраил.
+Для этого поменяй `MOCK_YANDEX_MODE` в `docker-compose.yml` на `always_500` / `always_429` / `random_500` / `random_429` и перезапусти:
+
+```bash
+docker compose up -d --build mock-yandex receiver
+```
+
+## Нагрузочные прогоны (vegeta)
+
+Самый простой способ без установки на хост — использовать `vegeta` в контейнере.
+Пример direct-нагрузки на receiver: см. `tools/load/README.md`.
+
+## Real Yandex (ручная проверка)
+
+Чтобы проверить доставку в настоящий Yandex Messenger Bot API:
+
+1) Остановить mock или просто переключить receiver на реальный base URL:\n
+- `YANDEX_API_BASE=https://botapi.messenger.yandex.net`
+- `YANDEX_OAUTH_TOKEN=<real token>`
+
+2) Запустить receiver (локально или через compose) и сгенерировать `single` алерт как выше.
+
+> Для нагрузочных прогонов рекомендуется оставаться на mock, чтобы не упираться в сеть/лимиты внешнего API.
+
