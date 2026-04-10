@@ -51,17 +51,16 @@ class YandexClient:
         payload_id: str | None,
     ) -> YandexSendResult:
         req = YandexSendTextRequest(text=text, login=login, chat_id=chat_id, payload_id=payload_id)
-        headers = {
-            "Authorization": f"OAuth {self._settings.yandex_oauth_token}",
-            "Content-Type": "application/json",
-        }
+        url = self._url()
+        headers = {"Authorization": f"OAuth {self._settings.yandex_oauth_token}", "Content-Type": "application/json"}
+        body = req.model_dump(by_alias=True, exclude_none=True)
 
         try:
             async with httpx.AsyncClient(timeout=self._timeout()) as client:
                 resp = await client.post(
-                    self._url(),
+                    url,
                     headers=headers,
-                    json=req.model_dump(by_alias=True, exclude_none=True),
+                    json=body,
                 )
         except (httpx.TimeoutException, httpx.NetworkError) as e:
             raise YandexTemporaryError(str(e)) from e
