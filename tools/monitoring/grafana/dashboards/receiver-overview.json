@@ -1,0 +1,188 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (target, payload_status) (rate(receiver_webhook_requests_total[1m]))",
+          "legendFormat": "{{target}} {{payload_status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Webhook RPS",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (target, outcome) (rate(receiver_yandex_send_total[1m]))",
+          "legendFormat": "{{target}} {{outcome}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Yandex Send Outcomes (RPS)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "s", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.50, sum by (le, target) (rate(receiver_yandex_send_latency_seconds_bucket{outcome=\"success\"}[5m])))",
+          "legendFormat": "p50 {{target}}",
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, sum by (le, target) (rate(receiver_yandex_send_latency_seconds_bucket{outcome=\"success\"}[5m])))",
+          "legendFormat": "p95 {{target}}",
+          "refId": "B"
+        },
+        {
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.99, sum by (le, target) (rate(receiver_yandex_send_latency_seconds_bucket{outcome=\"success\"}[5m])))",
+          "legendFormat": "p99 {{target}}",
+          "refId": "C"
+        }
+      ],
+      "title": "Yandex Send Latency (success)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "min": 0, "max": 1 },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (target) (rate(receiver_yandex_send_total{outcome!=\"success\"}[5m])) / clamp_min(sum by (target) (rate(receiver_yandex_send_total[5m])), 1e-9)",
+          "legendFormat": "{{target}} error_ratio",
+          "refId": "A"
+        }
+      ],
+      "title": "Yandex Send Error Ratio",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 16 },
+      "id": 5,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto", "textMode": "value" },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "increase(receiver_render_failures_total[15m])",
+          "refId": "A"
+        }
+      ],
+      "title": "Template Render Failures (15m)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 16 },
+      "id": 6,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (target, payload_status) (rate(receiver_webhook_alerts_total[1m]))",
+          "legendFormat": "{{target}} {{payload_status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Alerts Throughput",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 16 },
+      "id": 7,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "rate(mock_yandex_send_text_total[1m])",
+          "legendFormat": "mock delivered rps",
+          "refId": "A"
+        }
+      ],
+      "title": "Mock Delivery RPS",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["receiver", "prometheus"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30m", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Receiver Overview",
+  "uid": "receiver-overview",
+  "version": 1,
+  "weekStart": ""
+}

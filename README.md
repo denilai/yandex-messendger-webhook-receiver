@@ -194,6 +194,20 @@ Endpoint'ы:
 - `mock_yandex_send_text_latency_seconds_bucket`
 - `mock_yandex_stored_requests`
 
+## Grafana dashboard
+
+В `docker-compose.yml` добавлены:
+
+- `prometheus` (`http://localhost:9090`)
+- `grafana` (`http://localhost:3000`)
+
+Логин/пароль Grafana по умолчанию: `admin/admin` (можно переопределить через `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD`).
+
+Провижининг настроен автоматически:
+
+- datasource: Prometheus
+- dashboard: `Receiver Overview` (папка `Receiver`)
+
 ## Real Yandex (ручная проверка)
 
 Чтобы проверить доставку в настоящий Yandex Messenger Bot API:
