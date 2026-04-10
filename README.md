@@ -160,10 +160,39 @@ curl -s http://localhost:18080/_last | python -m json.tool
 docker compose up -d --build mock-yandex receiver
 ```
 
-## Нагрузочные прогоны (vegeta)
+## Нагрузочные прогоны
 
-Самый простой способ без установки на хост — использовать `vegeta` в контейнере.
-Пример direct-нагрузки на receiver: см. `tools/load/README.md`.
+Рекомендуемый путь: `python tools/load/receiver_load.py` (см. `tools/load/README.md`).
+
+Скрипт даёт сразу:
+
+- `RPS` и latency (`p50/p95/p99`)
+- проверку, что принятые `202` действительно дошли до `mock-yandex`
+- метрику `delivery_gap` (в норме `0`)
+
+Для прогона через Alertmanager без группировки используй `alert-generator --mode spray` (каждый алерт с уникальным `alertname`, значит отправляется отдельно).
+
+## Метрики Prometheus
+
+Endpoint'ы:
+
+- `receiver`: `GET /metrics` (например `http://localhost:8081/metrics`)
+- `mock-yandex`: `GET /metrics` (например `http://localhost:18080/metrics`)
+
+Ключевые метрики receiver:
+
+- `receiver_webhook_requests_total{target,payload_status}`
+- `receiver_webhook_alerts_total{target,payload_status}`
+- `receiver_yandex_send_total{target,outcome}`
+- `receiver_yandex_send_latency_seconds_bucket{target,outcome,...}`
+- `receiver_render_failures_total`
+
+Ключевые метрики mock:
+
+- `mock_yandex_send_text_total` (монотонный total, используется в load-скрипте)
+- `mock_yandex_send_text_failures_total{reason}`
+- `mock_yandex_send_text_latency_seconds_bucket`
+- `mock_yandex_stored_requests`
 
 ## Real Yandex (ручная проверка)
 

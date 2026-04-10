@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import jinja2
 
+from app.metrics import RENDER_FAILURES_TOTAL
 from app.models.alertmanager import AlertmanagerAlertV4, AlertmanagerWebhookV4
 
 if TYPE_CHECKING:
@@ -136,6 +137,7 @@ def render_alertmanager_text(
             text = env.get_template("default.j2").render(**context)
     except jinja2.TemplateError as exc:
         logger.error("Template rendering failed, falling back to plain format: %s", exc)
+        RENDER_FAILURES_TOTAL.inc()
         text = _plain_fallback(payload)
 
     return _truncate(text.strip())

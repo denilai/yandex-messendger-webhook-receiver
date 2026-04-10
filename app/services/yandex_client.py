@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import time
 from dataclasses import dataclass
 
 import httpx
 
 from app.config.settings import Settings
+from app.metrics import YANDEX_SEND_LATENCY_SECONDS, YANDEX_SEND_TOTAL
 from app.models.alertmanager import AlertmanagerWebhookV4
 from app.models.yandex import YandexSendTextRequest, YandexSendTextResponse
 
@@ -59,7 +61,13 @@ class YandexClient:
         headers = {"Authorization": f"OAuth {self._settings.yandex_oauth_token}", "Content-Type": "application/json"}
         body = req.model_dump(by_alias=True, exclude_none=True)
 
-        logger.debug("Sending request to Yandex: POST %s body=%s", url, body)
+        target = "user" if login else "chat"
+        logger.info(
+            "Sending message to Yandex: target=%s payload_id=%s",
+            target,
+            payload_id,
+        )
+        start = time.perf_counter()
 
         try:
             async with httpx.AsyncClient(timeout=self._timeout()) as client:
@@ -69,27 +77,55 @@ class YandexClient:
                     json=body,
                 )
         except (httpx.TimeoutException, httpx.NetworkError) as e:
-            logger.warning("Yandex network/timeout error: %s", e)
+            elapsed = time.perf_counter() - start
+            YANDEX_SEND_TOTAL.labels(target=target, outcome="transport_error").inc()
+            YANDEX_SEND_LATENCY_SECONDS.labels(target=target, outcome="transport_error").observe(elapsed)
+            logger.warning("Yandex network/timeout error: payload_id=%s error=%s", payload_id, e)
             raise YandexTemporaryError(str(e)) from e
 
         if resp.status_code in (429,) or 500 <= resp.status_code <= 599:
-            logger.warning("Yandex returned server error: %d", resp.status_code)
+            elapsed = time.perf_counter() - start
+            YANDEX_SEND_TOTAL.labels(target=target, outcome="temporary_error").inc()
+            YANDEX_SEND_LATENCY_SECONDS.labels(target=target, outcome="temporary_error").observe(elapsed)
+            logger.warning("Yandex temporary response: payload_id=%s status=%d", payload_id, resp.status_code)
             raise YandexTemporaryError(f"Yandex returned {resp.status_code}")
 
         if 400 <= resp.status_code <= 499:
-            logger.warning("Yandex returned client error: %d %s", resp.status_code, resp.text)
+            elapsed = time.perf_counter() - start
+            YANDEX_SEND_TOTAL.labels(target=target, outcome="permanent_error").inc()
+            YANDEX_SEND_LATENCY_SECONDS.labels(target=target, outcome="permanent_error").observe(elapsed)
+            logger.warning(
+                "Yandex permanent response: payload_id=%s status=%d body=%s",
+                payload_id,
+                resp.status_code,
+                resp.text,
+            )
             raise YandexPermanentError(f"Yandex returned {resp.status_code}: {resp.text}")
 
         try:
             data = YandexSendTextResponse.model_validate(resp.json())
         except Exception as e:  # noqa: BLE001
-            logger.warning("Invalid Yandex response format: %s", e)
+            elapsed = time.perf_counter() - start
+            YANDEX_SEND_TOTAL.labels(target=target, outcome="invalid_response").inc()
+            YANDEX_SEND_LATENCY_SECONDS.labels(target=target, outcome="invalid_response").observe(elapsed)
+            logger.warning("Invalid Yandex response format: payload_id=%s error=%s", payload_id, e)
             raise YandexTemporaryError(f"Invalid Yandex response: {e}") from e
 
         if not data.ok:
-            logger.warning("Yandex response ok=false")
+            elapsed = time.perf_counter() - start
+            YANDEX_SEND_TOTAL.labels(target=target, outcome="ok_false").inc()
+            YANDEX_SEND_LATENCY_SECONDS.labels(target=target, outcome="ok_false").observe(elapsed)
+            logger.warning("Yandex response ok=false: payload_id=%s", payload_id)
             raise YandexPermanentError("Yandex response ok=false")
 
-        logger.debug("Yandex response OK: %d message_id=%s", resp.status_code, data.message_id)
+        elapsed = time.perf_counter() - start
+        YANDEX_SEND_TOTAL.labels(target=target, outcome="success").inc()
+        YANDEX_SEND_LATENCY_SECONDS.labels(target=target, outcome="success").observe(elapsed)
+        logger.info(
+            "Yandex delivered: payload_id=%s status=%d message_id=%s",
+            payload_id,
+            resp.status_code,
+            data.message_id,
+        )
         return YandexSendResult(ok=True, message_id=data.message_id)
 

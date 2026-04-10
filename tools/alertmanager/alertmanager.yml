@@ -34,7 +34,7 @@ receivers:
 
   - name: "yandex-user"
     webhook_configs:
-      - url: "http://receiver:8080/v1/alerts/users/test"
+      - url: "http://receiver:8080/v1/alerts/users/k.denisov@uiscom.ru"
         http_config:
           basic_auth:
             username: "user"

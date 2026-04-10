@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.auth.basic import require_basic_auth
 from app.config.settings import Settings, get_settings
+from app.metrics import WEBHOOK_ALERTS_TOTAL, WEBHOOK_REQUESTS_TOTAL
 from app.models.alertmanager import AlertmanagerWebhookV4
 from app.services.formatters import render_alertmanager_text
 from app.services.yandex_client import (
@@ -35,23 +36,32 @@ async def post_alerts_user(
     _auth: None = Depends(require_basic_auth),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, object]:
-    logger.info("Webhook received: login=%s alerts=%d status=%s", login, len(payload.alerts), payload.status)
+    payload_id = build_payload_id(payload)
+    alert_count = len(payload.alerts)
+    WEBHOOK_REQUESTS_TOTAL.labels(target="user", payload_status=payload.status).inc()
+    WEBHOOK_ALERTS_TOTAL.labels(target="user", payload_status=payload.status).inc(alert_count)
+    logger.info(
+        "Webhook received: target=user login=%s payload_id=%s alerts=%d status=%s",
+        login,
+        payload_id,
+        alert_count,
+        payload.status,
+    )
     text = render_alertmanager_text(payload, settings=settings)
     client = _client(settings)
-    payload_id = build_payload_id(payload)
 
     try:
         res = await client.send_text(text=text, login=login, chat_id=None, payload_id=payload_id)
-        logger.info("Message sent: login=%s message_id=%s", login, res.message_id)
+        logger.info("Message delivered: target=user login=%s payload_id=%s message_id=%s", login, payload_id, res.message_id)
         return _accepted(True, res.message_id)
     except YandexTemporaryError as e:
-        logger.error("Yandex temporary error: login=%s %s", login, e)
+        logger.error("Yandex temporary error: target=user login=%s payload_id=%s error=%s", login, payload_id, e)
         raise HTTPException(status_code=503, detail=str(e)) from e
     except YandexPermanentError as e:
         if settings.fail_on_yandex_4xx:
-            logger.error("Yandex permanent error: login=%s %s", login, e)
+            logger.error("Yandex permanent error: target=user login=%s payload_id=%s error=%s", login, payload_id, e)
             raise HTTPException(status_code=422, detail=str(e)) from e
-        logger.warning("Yandex permanent error (ignored): login=%s %s", login, e)
+        logger.warning("Yandex permanent error (ignored): target=user login=%s payload_id=%s error=%s", login, payload_id, e)
         return _accepted(False, None)
 
 
@@ -62,22 +72,36 @@ async def post_alerts_chat(
     _auth: None = Depends(require_basic_auth),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, object]:
-    logger.info("Webhook received: chat_id=%s alerts=%d status=%s", chat_id, len(payload.alerts), payload.status)
+    payload_id = build_payload_id(payload)
+    alert_count = len(payload.alerts)
+    WEBHOOK_REQUESTS_TOTAL.labels(target="chat", payload_status=payload.status).inc()
+    WEBHOOK_ALERTS_TOTAL.labels(target="chat", payload_status=payload.status).inc(alert_count)
+    logger.info(
+        "Webhook received: target=chat chat_id=%s payload_id=%s alerts=%d status=%s",
+        chat_id,
+        payload_id,
+        alert_count,
+        payload.status,
+    )
     text = render_alertmanager_text(payload, settings=settings)
     client = _client(settings)
-    payload_id = build_payload_id(payload)
 
     try:
         res = await client.send_text(text=text, login=None, chat_id=chat_id, payload_id=payload_id)
-        logger.info("Message sent: chat_id=%s message_id=%s", chat_id, res.message_id)
+        logger.info(
+            "Message delivered: target=chat chat_id=%s payload_id=%s message_id=%s",
+            chat_id,
+            payload_id,
+            res.message_id,
+        )
         return _accepted(True, res.message_id)
     except YandexTemporaryError as e:
-        logger.error("Yandex temporary error: chat_id=%s %s", chat_id, e)
+        logger.error("Yandex temporary error: target=chat chat_id=%s payload_id=%s error=%s", chat_id, payload_id, e)
         raise HTTPException(status_code=503, detail=str(e)) from e
     except YandexPermanentError as e:
         if settings.fail_on_yandex_4xx:
-            logger.error("Yandex permanent error: chat_id=%s %s", chat_id, e)
+            logger.error("Yandex permanent error: target=chat chat_id=%s payload_id=%s error=%s", chat_id, payload_id, e)
             raise HTTPException(status_code=422, detail=str(e)) from e
-        logger.warning("Yandex permanent error (ignored): chat_id=%s %s", chat_id, e)
+        logger.warning("Yandex permanent error (ignored): target=chat chat_id=%s payload_id=%s error=%s", chat_id, payload_id, e)
         return _accepted(False, None)
 
