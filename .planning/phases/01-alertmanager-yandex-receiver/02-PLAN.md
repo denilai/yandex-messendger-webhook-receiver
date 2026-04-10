@@ -5,7 +5,7 @@ type: execute
 wave: 1
 depends_on: []
 files_modified:
-  - pyproject.toml
+  - requirements.txt
   - README.md
   - app/__init__.py
   - app/main.py
@@ -22,6 +22,17 @@ files_modified:
   - app/services/__init__.py
   - app/services/formatters.py
   - app/services/yandex_client.py
+  - app/metrics.py
+  - app/config/logging.py
+  - app/config/logging.yaml
+  - app/templates/default.j2
+  - docker-compose.yml
+  - tools/mock_yandex/app.py
+  - tools/alert_generator/gen.py
+  - tools/load/receiver_load.py
+  - tools/load/README.md
+  - tools/monitoring/prometheus/prometheus.yml
+  - tools/monitoring/grafana/dashboards/receiver-overview.json
   - tests/conftest.py
   - tests/fixtures/alertmanager_v4_valid.json
   - tests/test_auth.py
@@ -99,6 +110,21 @@ Output: рабочий FastAPI сервис (2 эндпоинта), строга
 @.planning/phases/01-alertmanager-yandex-receiver/01-RESEARCH.md
 </context>
 
+<phase_status>
+Статус: **completed (по содержимому репозитория на 2026-04-10)**.
+
+Что подтверждено в коде:
+- реализованы оба endpoint (`/v1/alerts/users/{login}`, `/v1/alerts/chats/{chat_id}`), Basic Auth и маппинг 202/422/503;
+- есть тесты (`tests/test_auth.py`, `tests/test_formatting.py`, `tests/test_api.py`);
+- есть операционный контур: docker-compose стенд, mock Yandex, генератор алертов, load-скрипт, Prometheus/Grafana.
+
+Assumption / нужна проверка:
+- файл итогового исполнения `.planning/phases/01-alertmanager-yandex-receiver/01-02-SUMMARY.md` не найден в `.planning/`; возможно, не был создан или хранится вне `.planning`.
+
+Следующий шаг (однозначно):
+- выполнить короткую верификацию на актуальном коде (`pytest -q` + smoke через `docker compose up`), затем зафиксировать результат отдельным SUMMARY/VERIFICATION-артефактом в `.planning/phases/01-alertmanager-yandex-receiver/`.
+</phase_status>
+
 <tasks>
 
 <task type="auto">
@@ -115,13 +141,13 @@ app/services/formatters.py
 app/services/yandex_client.py
   </files>
   <action>
-Создать проект с нуля (репозиторий пустой), целевой стек: Python 3.12 + FastAPI + Pydantic v2 + HTTPX.
+Реализовать сервис на Python 3.12 + FastAPI + Pydantic v2 + HTTPX.
 
 1) Dependency management:
-   - Создать `pyproject.toml` (PEP 621) с зависимостями:
+   - Зафиксировать зависимости в `requirements.txt`:
      - runtime: `fastapi`, `uvicorn[standard]`, `pydantic`, `pydantic-settings`, `httpx`
      - test: `pytest`, `respx`
-   - В `pyproject.toml` настроить `pytest` (minversion, addopts) так, чтобы `pytest` запускался без доп. флагов.
+   - Обеспечить запуск `pytest` без дополнительных флагов.
 
 2) Typed settings (env config):
    - В `app/config/settings.py` реализовать `Settings` на базе `pydantic-settings`:
