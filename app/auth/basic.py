@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import logging
 import secrets
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from app.config.settings import Settings, get_settings
+
+logger = logging.getLogger(__name__)
 
 
 def _challenge(realm: str) -> dict[str, str]:
@@ -18,6 +21,7 @@ def require_basic_auth(
     settings: Settings = Depends(get_settings),
 ) -> None:
     if credentials is None:
+        logger.warning("Auth failed: no credentials provided")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorized",
@@ -27,6 +31,7 @@ def require_basic_auth(
     ok_user = secrets.compare_digest(credentials.username, settings.basic_auth_username)
     ok_pass = secrets.compare_digest(credentials.password, settings.basic_auth_password)
     if not (ok_user and ok_pass):
+        logger.warning("Auth failed: invalid credentials username=%s", credentials.username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorized",

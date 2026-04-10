@@ -116,7 +116,7 @@ docker compose --env-file .env.real up -d --force-recreate
 Debug-логи (включая отправляемый JSON в Yandex) проще всего включить так:
 
 ```bash
-UVICORN_LOG_LEVEL=debug docker compose up -d --force-recreate receiver
+LOG_LEVEL=DEBUG docker compose up -d --force-recreate receiver
 docker compose logs -f receiver
 ```
 

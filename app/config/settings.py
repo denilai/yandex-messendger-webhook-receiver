@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     )
     fail_on_yandex_4xx: bool = Field(default=False, alias="FAIL_ON_YANDEX_4XX")
 
+    message_template: str | None = Field(default=None, alias="MESSAGE_TEMPLATE")
+    message_template_file: str | None = Field(default=None, alias="MESSAGE_TEMPLATE_FILE")
+
+    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    log_format: str = Field(default="console", alias="LOG_FORMAT")
+    log_config: str | None = Field(default=None, alias="LOG_CONFIG")
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

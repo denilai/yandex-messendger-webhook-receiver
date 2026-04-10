@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from dataclasses import dataclass
 
 import httpx
@@ -8,6 +9,9 @@ import httpx
 from app.config.settings import Settings
 from app.models.alertmanager import AlertmanagerWebhookV4
 from app.models.yandex import YandexSendTextRequest, YandexSendTextResponse
+
+
+logger = logging.getLogger(__name__)
 
 
 class YandexTemporaryError(RuntimeError):
@@ -55,6 +59,8 @@ class YandexClient:
         headers = {"Authorization": f"OAuth {self._settings.yandex_oauth_token}", "Content-Type": "application/json"}
         body = req.model_dump(by_alias=True, exclude_none=True)
 
+        logger.debug("Sending request to Yandex: POST %s body=%s", url, body)
+
         try:
             async with httpx.AsyncClient(timeout=self._timeout()) as client:
                 resp = await client.post(
@@ -63,23 +69,27 @@ class YandexClient:
                     json=body,
                 )
         except (httpx.TimeoutException, httpx.NetworkError) as e:
+            logger.warning("Yandex network/timeout error: %s", e)
             raise YandexTemporaryError(str(e)) from e
 
         if resp.status_code in (429,) or 500 <= resp.status_code <= 599:
+            logger.warning("Yandex returned server error: %d", resp.status_code)
             raise YandexTemporaryError(f"Yandex returned {resp.status_code}")
 
         if 400 <= resp.status_code <= 499:
+            logger.warning("Yandex returned client error: %d %s", resp.status_code, resp.text)
             raise YandexPermanentError(f"Yandex returned {resp.status_code}: {resp.text}")
 
         try:
             data = YandexSendTextResponse.model_validate(resp.json())
         except Exception as e:  # noqa: BLE001
-            # Unknown response format is treated as temporary to let Alertmanager retry.
+            logger.warning("Invalid Yandex response format: %s", e)
             raise YandexTemporaryError(f"Invalid Yandex response: {e}") from e
 
         if not data.ok:
-            # If API returns ok=false with 2xx, treat it as permanent (policy decision)
+            logger.warning("Yandex response ok=false")
             raise YandexPermanentError("Yandex response ok=false")
 
+        logger.debug("Yandex response OK: %d message_id=%s", resp.status_code, data.message_id)
         return YandexSendResult(ok=True, message_id=data.message_id)
 
