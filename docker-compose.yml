@@ -2,11 +2,13 @@ services:
   receiver:
     build:
       context: .
+    command: ["sh", "-lc", "uvicorn app.main:app --host 0.0.0.0 --port 8080 --log-level ${UVICORN_LOG_LEVEL:-info}"]
     environment:
-      BASIC_AUTH_USERNAME: user
-      BASIC_AUTH_PASSWORD: pass
-      YANDEX_OAUTH_TOKEN: dummy
-      YANDEX_API_BASE: http://mock-yandex:8080
+      BASIC_AUTH_USERNAME: ${BASIC_AUTH_USERNAME:-user}
+      BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD:-pass}
+      YANDEX_OAUTH_TOKEN: ${YANDEX_OAUTH_TOKEN:-dummy}
+      YANDEX_API_BASE: ${YANDEX_API_BASE:-http://mock-yandex:8080}
+      UVICORN_LOG_LEVEL: ${UVICORN_LOG_LEVEL:-info}
     ports:
       - "8081:8080"
     depends_on:
@@ -16,7 +18,7 @@ services:
     build:
       context: tools/mock_yandex
     environment:
-      MOCK_YANDEX_MODE: always_ok
+      MOCK_YANDEX_MODE: ${MOCK_YANDEX_MODE:-always_ok}
     ports:
       - "18080:8080"
 
