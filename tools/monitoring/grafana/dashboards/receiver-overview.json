@@ -38,6 +38,7 @@
           "refId": "A"
         }
       ],
+      "description": "Incoming webhook request rate by target and payload status. Helps track ingress load on receiver.",
       "title": "Webhook RPS",
       "type": "timeseries"
     },
@@ -58,6 +59,7 @@
           "refId": "A"
         }
       ],
+      "description": "Rate of sendText outcomes grouped by target and result category (success, temporary/permanent errors).",
       "title": "Yandex Send Outcomes (RPS)",
       "type": "timeseries"
     },
@@ -90,6 +92,7 @@
           "refId": "C"
         }
       ],
+      "description": "Delivery latency quantiles for successful Yandex send operations. Primary SLI for outbound performance.",
       "title": "Yandex Send Latency (success)",
       "type": "timeseries"
     },
@@ -110,6 +113,7 @@
           "refId": "A"
         }
       ],
+      "description": "Share of non-success send outcomes over total sends. Values near zero indicate healthy delivery.",
       "title": "Yandex Send Error Ratio",
       "type": "timeseries"
     },
@@ -129,6 +133,7 @@
           "refId": "A"
         }
       ],
+      "description": "Count of template rendering fallback events in the last 15 minutes. Should normally remain zero.",
       "title": "Template Render Failures (15m)",
       "type": "stat"
     },
@@ -149,6 +154,7 @@
           "refId": "A"
         }
       ],
+      "description": "Rate of individual alerts inside webhook payloads. Complements request RPS when payload sizes vary.",
       "title": "Alerts Throughput",
       "type": "timeseries"
     },
@@ -169,7 +175,57 @@
           "refId": "A"
         }
       ],
+      "description": "Observed delivery rate in mock-yandex (`sendText` accepted). Useful for end-to-end confirmation in test mode.",
       "title": "Mock Delivery RPS",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Configured number of Uvicorn workers (`UVICORN_WORKERS`) exported by receiver. Baseline: 1 worker.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "min": 1
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 22 },
+      "id": 8,
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "max(receiver_workers_configured)",
+          "refId": "A"
+        }
+      ],
+      "title": "Configured Workers",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Ingress load per configured worker. Growth of this value with rising latency indicates worker saturation.",
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 16, "x": 8, "y": 22 },
+      "id": 9,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(rate(receiver_webhook_requests_total[1m])) / clamp_min(max(receiver_workers_configured), 1)",
+          "legendFormat": "requests_per_worker",
+          "refId": "A"
+        }
+      ],
+      "title": "Worker Capacity Saturation",
       "type": "timeseries"
     }
   ],

@@ -2,12 +2,13 @@ services:
   receiver:
     build:
       context: .
-    command: ["sh", "-lc", "uvicorn app.main:app --host 0.0.0.0 --port 8080"]
+    command: ["sh", "-lc", "uvicorn app.main:app --host 0.0.0.0 --port 8080 --workers ${UVICORN_WORKERS:-1}"]
     environment:
       BASIC_AUTH_USERNAME: ${BASIC_AUTH_USERNAME:-user}
       BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD:-pass}
       YANDEX_OAUTH_TOKEN: ${YANDEX_OAUTH_TOKEN:-dummy}
       YANDEX_API_BASE: ${YANDEX_API_BASE:-http://mock-yandex:8080}
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-1}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       LOG_FORMAT: ${LOG_FORMAT:-console}
     ports:
@@ -52,6 +53,7 @@ services:
       - --web.enable-lifecycle
     volumes:
       - ./tools/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
     ports:
       - "9090:9090"
     depends_on:
@@ -71,4 +73,9 @@ services:
       - "3000:3000"
     depends_on:
       - prometheus
+    profiles:
+      - monitoring
+
+volumes:
+  prometheus-data:
 
