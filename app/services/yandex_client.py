@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import time
 from dataclasses import dataclass
@@ -30,8 +31,20 @@ class YandexSendResult:
     message_id: int | None = None
 
 
-def build_payload_id(payload: AlertmanagerWebhookV4) -> str:
-    raw = f"{payload.groupKey}|{payload.status}|{payload.receiver}"
+def build_payload_id(
+    payload: AlertmanagerWebhookV4,
+    *,
+    target_kind: str,
+    target_value: str,
+    text: str,
+) -> str:
+    payload_canonical = json.dumps(
+        payload.model_dump(mode="json", by_alias=True, exclude_none=False),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    raw = f"{target_kind}|{target_value}|{text}|{payload_canonical}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 

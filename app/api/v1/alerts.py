@@ -36,7 +36,8 @@ async def post_alerts_user(
     _auth: None = Depends(require_basic_auth),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, object]:
-    payload_id = build_payload_id(payload)
+    text = render_alertmanager_text(payload, settings=settings)
+    payload_id = build_payload_id(payload, target_kind="login", target_value=login, text=text)
     alert_count = len(payload.alerts)
     WEBHOOK_REQUESTS_TOTAL.labels(target="user", payload_status=payload.status).inc()
     WEBHOOK_ALERTS_TOTAL.labels(target="user", payload_status=payload.status).inc(alert_count)
@@ -47,7 +48,6 @@ async def post_alerts_user(
         alert_count,
         payload.status,
     )
-    text = render_alertmanager_text(payload, settings=settings)
     client = _client(settings)
 
     try:
@@ -72,7 +72,8 @@ async def post_alerts_chat(
     _auth: None = Depends(require_basic_auth),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, object]:
-    payload_id = build_payload_id(payload)
+    text = render_alertmanager_text(payload, settings=settings)
+    payload_id = build_payload_id(payload, target_kind="chat_id", target_value=chat_id, text=text)
     alert_count = len(payload.alerts)
     WEBHOOK_REQUESTS_TOTAL.labels(target="chat", payload_status=payload.status).inc()
     WEBHOOK_ALERTS_TOTAL.labels(target="chat", payload_status=payload.status).inc(alert_count)
@@ -83,7 +84,6 @@ async def post_alerts_chat(
         alert_count,
         payload.status,
     )
-    text = render_alertmanager_text(payload, settings=settings)
     client = _client(settings)
 
     try:
