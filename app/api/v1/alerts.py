@@ -36,7 +36,7 @@ async def post_alerts_user(
     settings: Settings = Depends(get_settings),
 ) -> dict[str, object]:
     logger.info("Webhook received: login=%s alerts=%d status=%s", login, len(payload.alerts), payload.status)
-    text = render_alertmanager_text(payload)
+    text = render_alertmanager_text(payload, settings=settings)
     client = _client(settings)
     payload_id = build_payload_id(payload)
 
@@ -63,7 +63,7 @@ async def post_alerts_chat(
     settings: Settings = Depends(get_settings),
 ) -> dict[str, object]:
     logger.info("Webhook received: chat_id=%s alerts=%d status=%s", chat_id, len(payload.alerts), payload.status)
-    text = render_alertmanager_text(payload)
+    text = render_alertmanager_text(payload, settings=settings)
     client = _client(settings)
     payload_id = build_payload_id(payload)
 

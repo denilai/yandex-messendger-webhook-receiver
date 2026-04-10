@@ -1,0 +1,22 @@
+[{{ status | upper }}] {{ alertname }}  ({{ firing }} firing / {{ resolved }} resolved)
+
+{% if summary %}Summary: {{ summary }}
+{% endif -%}
+{% if description %}Description: {{ description }}
+{% endif %}
+Group: {{ groupLabels | kv }}
+Common: {{ commonLabels | kv }}
+
+Alerts:
+{% for a in alerts | slice_alerts(max_alerts) -%}
+- {{ a.labels.get('instance', '?') }} {{ a.labels.get('job', '?') }} {{ a.labels.get('severity', '?') }}
+  startsAt={{ a.startsAt.isoformat() }} endsAt={{ a.endsAt.isoformat() }}
+{% if a.annotations.get('summary') %}  {{ a.annotations.get('summary') }}
+{% endif -%}
+{% if a.generatorURL %}  {{ a.generatorURL }}
+{% endif -%}
+{% endfor -%}
+{% if overflow > 0 %}… (+{{ overflow }} more)
+{% endif %}
+Alertmanager: {{ externalURL or '-' }}
+GroupKey: {{ groupKey }}
